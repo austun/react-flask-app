@@ -1,50 +1,151 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Link, Switch, Route } from 'react-router-dom';
-import logo from './logo.svg';
-import './App.css';
+import React, { Component } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { brokerService } from "./brokerService";
+import BootstrapTable from "react-bootstrap-table-next";
 
-function App() {
-  const [currentTime, setCurrentTime] = useState(0);
+class App extends Component {
 
-  useEffect(() => {
-    fetch('/api/time').then(res => res.json()).then(data => {
-      setCurrentTime(data.time);
+  constructor(props) {
+    super(props)
+    this.state = {
+      first_name: '',
+      last_name: '',
+      email: '',
+      address: '',
+      error: '',
+      brokers: ''
+    }
+
+    this.handleSubmit = this.handleSubmit.bind(this)
+    this.handleChange = this.handleChange.bind(this)
+    this.fetchBrokerList = this.fetchBrokerList.bind(this)
+  }
+
+  componentDidMount() {
+    this.fetchBrokerList()
+  }
+
+  fetchBrokerList() {
+    brokerService.getBrokers()
+    .then(response => {
+        this.setState({
+          brokers: response
+        });
+    })
+  }
+
+
+  handleSubmit = (event) => {
+    event.preventDefault();
+
+    brokerService.signup(this.state.first_name, this.state.last_name, this.state.email, this.state.address)
+      .then(response => {
+        if (typeof response.status !== 'undefined' && response.status !== 200) {
+          this.setState({ error: response.message });
+        } else {
+          this.setState({
+            first_name: '',
+            last_name: '',
+            email: '',
+            address: '',
+            error: ''
+          });
+
+          this.fetchBrokerList()
+        }
+      })
+
+  }
+
+  handleChange = (event) => {
+    event.preventDefault();
+
+    this.setState({
+      [event.target.name]: event.target.value
     });
-  }, []);
+  }
 
-  return (
-    <div className="App">
-      <header className="App-header">
-        <BrowserRouter>
-          <div>
-            <Link className="App-link" to="/">Home</Link>
-            &nbsp;|&nbsp;
-            <Link className="App-link" to="/page2">Page2</Link>
-          </div>
-          <Switch>
-            <Route exact path="/">
-                <img src={logo} className="App-logo" alt="logo" />
-                <p>
-                  Edit <code>src/App.js</code> and save to reload.
-                </p>
-                <a
-                  className="App-link"
-                  href="https://reactjs.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Learn React
-                </a>
-                <p>The current time is {currentTime}.</p>
-            </Route>
-            <Route path="/page2">
-                <p>This is page 2!</p>
-            </Route>
-          </Switch>
-        </BrowserRouter>
-      </header>
-    </div>
-  );
+  render() {
+
+    const { first_name, last_name, email, address, error, brokers } = this.state;
+
+    const columns = [
+      {
+        dataField: "title",
+        text: "Title"
+      },
+      {
+        dataField: "domain",
+        text: "Domain"
+      },
+      {
+        dataField: "first_name",
+        text: "First Name"
+      },
+      {
+        dataField: "last_name",
+        text: "Last Name"
+      },
+      {
+        dataField: "email",
+        text: "Email"
+      },
+      {
+        dataField: "address",
+        text: "Address"
+      }
+    ];
+
+    return (
+      <div className="row">
+        <div className="col-md-6 offset-md-3">
+          <form onSubmit={this.handleSubmit}>
+            <h1>Registration For Brokers</h1>
+
+            <div className="form-group">
+              <label htmlFor="first_name">First Name</label>
+              <input type="text" className="form-control" name="first_name" value={first_name}
+                onChange={this.handleChange} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="last_name">Last Name</label>
+              <input type="text" className="form-control" name="last_name" value={last_name}
+                onChange={this.handleChange} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input type="text" className="form-control" name="email"
+                value={email} onChange={this.handleChange} />
+            </div>
+            <div className="form-group">
+              <label htmlFor="address">Address</label>
+              <input type="text" className="form-control" name="address"
+                value={address} onChange={this.handleChange} />
+            </div>
+            <div className="form-group">
+              <button className="btn btn-primary btn-lg">Sign Up</button>
+            </div>
+
+            {error !== '' && <div className="alert alert-danger">{error}</div>}
+          </form>
+
+
+        </div>
+        <div className="col-md-12 offset-md-0">
+        <h1 style={{textAlign: "center"}}>List of Brokers</h1>
+        <BootstrapTable
+            keyField="id"
+            data={brokers}
+            columns={columns}
+            striped
+            hover
+            condensed
+          />
+        </div>
+
+      </div>
+    );
+  }
 }
 
 export default App;
